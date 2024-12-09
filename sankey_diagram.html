@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Country Trade Volumes: Exports and Imports</title>
+    <!-- Include D3.js via CDN -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <!-- Include d3-sankey via CDN -->
+    <script src="https://unpkg.com/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        #visualization {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        #my_dataviz, #my_dataviz2 {
+            flex: 1;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+        .node rect {
+            cursor: move;
+            fill-opacity: 0.9;
+            shape-rendering: crispEdges;
+        }
+        .node text {
+            pointer-events: none;
+            text-shadow: 0 1px 0 #fff;
+            font-size: 10px;
+        }
+        .link {
+            fill: none;
+            stroke-opacity: 0.5;
+        }
+        .link:hover {
+            stroke-opacity: 0.7;
+        }
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            padding: 6px;
+            font: 12px sans-serif;
+            background: lightsteelblue;
+            border: 0px;
+            border-radius: 4px;
+            pointer-events: none;
+            opacity: 0;
+        }
+    </style>
+</head>
+<body>
+    <h2>Country Trade Volumes: Exports and Imports</h2>
+    <!-- Container for the Sankey diagram -->
+    <div id="sankey-container"></div>
+
+    <div id="visualization">
+        <div id="my_dataviz">Line Graph Area</div>
+        <div id="my_dataviz2">Pie Chart Area</div>
+    </div>
+
+    <!-- Tooltip Div -->
+    <div id="tooltip" class="tooltip"></div>
+    <script>
+        // Set the dimensions and margins of the graph
+        const margin = {top: 10, right: 10, bottom: 10, left: 10},
+              width = 960 - margin.left - margin.right,
+              height = 600 - margin.top - margin.bottom;
+
+        // Append the SVG object to the container
+        const svg = d3.select("#sankey-container")
+                      .append("svg")
+                      .attr("width", width + margin.left + margin.right)
+                      .attr("height", height + margin.top + margin.bottom)
+                      .append("g")
+                      .attr("transform",
+                            "translate(" + margin.left + "," + margin.top + ")");
+
+        // Tooltip setup
+        const tooltip = d3.select("#tooltip");
+
+        // Define the data
+        const data = {
+            "nodes": [
+                { "name": "USA" },
+                { "name": "China, Hong Kong SAR" },
+                { "name": "Japan" },
+                { "name": "Germany" },
+                { "name": "Rep. of Korea" },
+                { "name": "Exports" },
+                { "name": "Imports" }
+            ],
+            "links": [
+                { "source": "USA", "target": "Exports", "value": 552301654, "color": "rgba(31, 119, 180, 0.6)" },
+                { "source": "China, Hong Kong SAR", "target": "Exports", "value": 271036394, "color": "rgba(31, 119, 180, 0.6)" },
+                { "source": "Japan", "target": "Exports", "value": 185836269, "color": "rgba(31, 119, 180, 0.6)" },
+                { "source": "Germany", "target": "Exports", "value": 176188095, "color": "rgba(31, 119, 180, 0.6)" },
+                { "source": "Rep. of Korea", "target": "Exports", "value": 150380197, "color": "rgba(31, 119, 180, 0.6)" },
+                { "source": "USA", "target": "Imports", "value": 157133660, "color": "rgba(255, 127, 14, 0.6)" },
+                { "source": "China, Hong Kong SAR", "target": "Imports", "value": 19686000, "color": "rgba(255, 127, 14, 0.6)" },
+                { "source": "Japan", "target": "Imports", "value": 151891859, "color": "rgba(255, 127, 14, 0.6)" },
+                { "source": "Germany", "target": "Imports", "value": 109611607, "color": "rgba(255, 127, 14, 0.6)" },
+                { "source": "Rep. of Korea", "target": "Imports", "value": 164322399, "color": "rgba(255, 127, 14, 0.6)" }
+            ]
+        };
+
+        const fileMap = {
+            "USA": ["expUSA.js", "expUSA_Line.js", "impUSA.js", "impUSA_Line.js"],
+            "Germany": ["expGER.js", "expGER_Line.js", "impGER.js", "impGER_Line.js"],
+            "China, Hong Kong SAR": ["expHK.js", "expHK_Line.js", "impHK.js", "impHK_Line.js"],
+            "Japan": ["expJPN.js", "expJPN_Line.js", "impJPN.js", "impJPN_Line.js"],
+            "Rep. of Korea": ["expSK.js", "expSK_Line.js", "impSK.js", "impSK_Line.js"]
+        };
+
+        function loadScripts(files, callback) {
+            let loaded = 0;
+
+            files.forEach(file => {
+                console.log(`Attempting to load: ${file}`);
+                const script = document.createElement("script");
+                script.src = file;
+                script.onload = () => {
+                    console.log(`${file} loaded successfully.`);
+                    loaded += 1;
+                    if (loaded === files.length) callback();
+                };
+                script.onerror = () => {
+            console.error(`Error loading file: ${file}`);
+        };
+                document.body.appendChild(script);
+            });
+        }
+
+        function onNodeClick(country) {
+            console.log(`Node clicked: ${country}`);
+            const files = fileMap[country];
+            if (!files) {
+                alert("No data available for " + country);
+                return;
+            }
+
+            // Clear existing visualizations
+            d3.select("#my_dataviz").html("<p>Line Chart</p>");
+            d3.select("#my_dataviz2").html("<p>Pie Chart</p>");
+
+            loadScripts(files, () => {
+                console.log(`${country} scripts loaded`);
+                // Invoke functions from loaded files to render graphs.
+            });
+        }
+
+
+        // Create a map from node name to index
+        const nodeMap = new Map();
+        data.nodes.forEach((d, i) => {
+            nodeMap.set(d.name, i);
+        });
+
+        // Replace source and target with indices
+        const links = data.links.map(d => ({
+            source: nodeMap.get(d.source),
+            target: nodeMap.get(d.target),
+            value: d.value,
+            color: d.color
+        }));
+
+        // Construct the sankey diagram
+        const sankey = d3.sankey()
+                         .nodeWidth(20)
+                         .nodePadding(10)
+                         .extent([[1, 1], [width - 1, height - 6]]);
+
+        const graph = sankey({
+            nodes: data.nodes.map(d => Object.assign({}, d)),
+            links: links.map(d => Object.assign({}, d))
+        });
+
+        // Add links
+        svg.append("g")
+           .selectAll(".link")
+           .data(graph.links)
+           .enter()
+           .append("path")
+           .attr("class", "link")
+           .attr("d", d3.sankeyLinkHorizontal())
+           .attr("stroke", d => d.color)
+           .attr("stroke-width", d => Math.max(1, d.width))
+           .attr("fill", "none")
+           .on("mouseover", function(event, d) {
+               tooltip.transition()
+                      .duration(200)
+                      .style("opacity", .9);
+               tooltip.html(`
+                   <strong>${d.source.name} → ${d.target.name}</strong><br/>
+                   Value: $${d.value.toLocaleString()}
+               `)
+                      .style("left", (event.pageX + 10) + "px")
+                      .style("top", (event.pageY - 28) + "px");
+           })
+           .on("mouseout", function() {
+               tooltip.transition()
+                      .duration(500)
+                      .style("opacity", 0);
+           });
+
+        // Add nodes
+        const node = svg.append("g")
+                        .selectAll(".node")
+                        .data(graph.nodes)
+                        .enter()
+                        .append("g")
+                        .attr("class", "node");
+
+
+        console.log("Graph Nodes:", graph.nodes);
+
+        node.append("rect")
+            .attr("x", d => d.x0)
+            .attr("y", d => d.y0)
+            .attr("height", d => d.y1 - d.y0)
+            .attr("width", d => d.x1 - d.x0)
+            .attr("fill", d => d.name === "Exports" ? "lightblue" : d.name === "Imports" ? "lightcoral" : "#ccc")
+            .attr("stroke", "black")
+            .on("click", (event, d) => {
+                console.log(`Rect clicked: ${d.name}`);
+                if (d.name !== "Exports" && d.name !== "Imports") {
+                    onNodeClick(d.name);
+                }
+            });
+            /*.attr("fill", d => {
+                if (d.name === "Exports") return "lightblue";
+                if (d.name === "Imports") return "lightcoral";
+                return "rgba(100, 100, 100, 0.7)";
+            })
+            .attr("stroke", "black");*/
+            
+
+        // Add node labels
+        node.append("text")
+            .attr("x", d => d.x0 - 6)
+            .attr("y", d => (d.y1 + d.y0) / 2)
+            .attr("dy", "0.35em")
+            .attr("text-anchor", "end")
+            .text(d => d.name)
+            .filter(d => d.x0 < width / 2)
+            .attr("x", d => d.x1 + 6)
+            .attr("text-anchor", "start");
+    </script>
+</body>
+</html>
